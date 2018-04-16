@@ -23,7 +23,7 @@ Usage
 int main(const int argc, const char *argv[])
 {
 	kseq_parser kseq("path/to/fasta.or.fastq.file");
-	while (kseq.read() >= 0)
+	while (kseq.read_seq() >= 0)
 	{
 		std::cout << kseq.name << std::endl; // name, etc. are all std::string
 		std::cout << kseq.seq << std::endl;
