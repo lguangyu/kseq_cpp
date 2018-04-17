@@ -9,9 +9,9 @@ Synopsis
 This is a re-implementation of kseq.h in c++ dialect.
 
 * re-designed in object-oriented fashion.
-* reading function renamed from 'kseq_read(kseq_t\*)' to 'kseq_parser.read()'
-* the input stream now completely desides in the std::istream side, no need to used FILE* (this means gzFile should be wrapped into stream also)
-* name, comments, seq, qual are all std::string instead of kstring_t*
+* reading function renamed from `kseq_read(kseq_t*)` to `kseq_parser.read()`
+* the input stream now completely resides in std::istream, using of `FILE*` is no longer needed (this means `gzFile` should be wrapped into stream also)
+* data of parsed seq, namely name, comments, seq, qual are `std::string` instead of `kstring_t*`
 
 Usage
 =====
@@ -53,7 +53,8 @@ This parser is designed to pass/survive or fail at below specific cases:
 <---- qual data --->
 ```
 
-Parser should pass under theses situations as normal. Should also pass in case both fasta/fastq seqs are found in a single file.
+Parser should pass under theses situations as normal.
+Should also pass in case both fasta/fastq seqs are found in a single file.
 
 
 ### 2. Pass: multiple line sequence/quality data
@@ -105,7 +106,7 @@ empty line
 If any/all of the positions above contains one or more empty lines, it should parse normally.
 
 
-### Survive: missing quality data
+### 5. Survive: missing quality data
 
 ```fastq
 @fastq
@@ -116,8 +117,9 @@ If any/all of the positions above contains one or more empty lines, it should pa
 +
 ```
 
-Above two cases contains fastq seqs without quality data.
-The parser should survive under these circumanstances but gives out warning (i.e. has return codes greater than 0).
+Above two cases contain fastq seqs without quality data.
+The parser should survive under these circumanstances but give warnings (i.e. have return codes greater than 0).
+This code will be the same as `kseq_parser::status::no_qual` constant.
 
 ### Fail: length of seq and quality data not match
 
@@ -127,11 +129,12 @@ The parser should survive under these circumanstances but gives out warning (i.e
 +
 <-- qual data -->
 ```
-If a fastq file contains non-zero length quality data, however, the length of this quality data is not the same as the seq data,
-the parser should fail, and returns a negative value.
+If a fastq file does contain non-zero length quality data, however, its length does not match the seq data,
+the parser should fail, and return a negative value `kseq_parser::status::fail`
+
 It is designed in this way as the difficulties in parse Sanger format fastq,
-where the seq and quality leading character (i.e. '@' and '+') will also appear in the quality data.
-The parser, however, assumes quality data and seq data have the exact same length,
-thus will extract the exact same number of characters from the stream after pass a quality header line, and treat them as quality data
-If the lengths not match, the parse of next seq will be problematic.
-The only exception is extra line breakers. They are trimmed when counting 'number of characters'.
+where both allowing the seq and quality leading characters (i.e. '@' and '+') to appear in the quality data, and multi-line quality data simultaneously.
+
+To find an easy solution, the parser assumes any quality data, whenever available, will be in the exact same length as the corresponding seq data (line breakers are not counted).
+Hence it will extract the exact same number of characters from the stream when parsing the quality data, no matter what actual character it is (only line breaker is excluded).
+In this approach, if the lengths do not match, part of the next seq might be extracted before being actually parsed.
